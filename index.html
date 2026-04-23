@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+  <title>오늘 뭐 먹지? 🍽️</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@400;600;700;800;900&display=swap" rel="stylesheet" />
+  <style>
+    body { font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, sans-serif; }
+
+    /* 부드럽게 떠오르는 등장 */
+    @keyframes fadeInUp {
+      from { opacity: 0; transform: translateY(16px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .fade-in-up { animation: fadeInUp .5s cubic-bezier(.22,1,.36,1); }
+
+    /* 결과 발표 시 "팡!" 터지는 느낌 */
+    @keyframes pop {
+      0%   { transform: scale(.4) rotate(-8deg); opacity: 0; }
+      60%  { transform: scale(1.08) rotate(3deg); opacity: 1; }
+      100% { transform: scale(1) rotate(0); }
+    }
+    .pop-in { animation: pop .6s cubic-bezier(.34,1.56,.64,1); }
+
+    /* 대기 상태의 이모지 살짝 둥둥 */
+    @keyframes floaty {
+      0%,100% { transform: translateY(0); }
+      50%    { transform: translateY(-10px); }
+    }
+    .floaty { animation: floaty 2.4s ease-in-out infinite; }
+
+    /* 로딩 중 이모지 덜덜덜 */
+    @keyframes wiggle {
+      0%,100% { transform: rotate(0) scale(1); }
+      25%    { transform: rotate(-8deg) scale(1.05); }
+      75%    { transform: rotate(8deg) scale(1.05); }
+    }
+    .wiggle { animation: wiggle .3s ease-in-out infinite; }
+
+    /* 배경 블롭 천천히 떠다니기 */
+    @keyframes drift {
+      0%,100% { transform: translate(0,0) scale(1); }
+      50%    { transform: translate(20px,-20px) scale(1.08); }
+    }
+    .drift { animation: drift 10s ease-in-out infinite; }
+  </style>
+</head>
+<body class="min-h-screen bg-gradient-to-br from-amber-100 via-rose-100 to-pink-200 overflow-x-hidden">
+
+  <!-- 배경 장식 블롭 -->
+  <div class="fixed top-0 left-0 w-72 h-72 bg-orange-300/40 rounded-full blur-3xl drift -z-10"></div>
+  <div class="fixed bottom-0 right-0 w-80 h-80 bg-pink-300/40 rounded-full blur-3xl drift -z-10" style="animation-delay:-4s"></div>
+
+  <main class="max-w-md mx-auto px-6 py-10 min-h-screen flex flex-col">
+
+    <!-- 헤더 -->
+    <header class="text-center mb-6 fade-in-up">
+      <div class="inline-block bg-white/70 backdrop-blur px-4 py-1.5 rounded-full text-xs font-bold tracking-widest text-rose-600 mb-4 shadow-sm">
+        TODAY'S PICK ✨
+      </div>
+      <h1 class="text-4xl font-black text-slate-800 leading-tight">
+        오늘 뭐 먹지?
+      </h1>
+      <p class="text-slate-500 mt-2 text-sm">
+        고민은 1초면 충분해. 버튼을 눌러봐!
+      </p>
+    </header>
+
+    <!-- 메인 카드 -->
+    <section class="flex-1 flex items-center justify-center mb-6">
+      <div class="w-full bg-white rounded-[2rem] shadow-2xl shadow-rose-200/60 p-10 text-center relative overflow-hidden">
+
+        <!-- 카드 상단 장식 -->
+        <div class="absolute top-0 left-0 right-0 h-2 bg-gradient-to-r from-orange-400 via-rose-400 to-pink-400"></div>
+
+        <!-- 1. 초기 상태 -->
+        <div id="initial-state">
+          <div class="text-8xl mb-5 floaty">🤔</div>
+          <p class="text-xl font-extrabold text-slate-700 mb-1">배고프지?</p>
+          <p class="text-sm text-slate-400">아래 버튼을 눌러봐</p>
+        </div>
+
+        <!-- 2. 로딩 상태 -->
+        <div id="loading-state" class="hidden">
+          <div id="loading-emoji" class="text-8xl mb-5 wiggle">🎲</div>
+          <p class="text-xl font-extrabold text-slate-700">고르는 중...</p>
+          <p class="text-sm text-slate-400 mt-1">두근두근 ✨</p>
+        </div>
+
+        <!-- 3. 결과 상태 -->
+        <div id="result-state" class="hidden">
+          <div id="result-category"
+               class="inline-block bg-gradient-to-r from-orange-100 to-rose-100 px-3 py-1 rounded-full text-xs font-bold text-rose-600 mb-3">
+            한식
+          </div>
+          <div id="result-emoji" class="text-8xl mb-3">🍜</div>
+          <p id="result-name" class="text-3xl font-black text-slate-800 mb-2">라면</p>
+          <p id="result-desc" class="text-sm text-slate-500">오늘은 이거 어때?</p>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- 버튼 영역 -->
+    <div class="space-y-3">
+      <button id="pick-btn"
+              class="w-full bg-gradient-to-r from-orange-500 to-rose-500 text-white font-bold py-4 rounded-2xl text-lg shadow-xl shadow-rose-400/40 hover:scale-[1.03] active:scale-95 transition-all">
+        🎲 랜덤으로 뽑기
+      </button>
+      <button id="share-btn"
+              class="w-full bg-white/80 backdrop-blur text-slate-700 font-semibold py-3 rounded-2xl border-2 border-white hover:bg-white active:scale-95 transition-all hidden">
+        📸 친구한테 공유하기
+      </button>
+    </div>
+
+    <!-- 통계 -->
+    <div class="text-center mt-6 text-xs text-slate-500">
+      지금까지 <span id="pick-count" class="font-bold text-rose-500">0</span>번 뽑았어요
+    </div>
+
+  </main>
+
+  <!-- 토스트 -->
+  <div id="toast"
+       class="fixed bottom-8 left-1/2 -translate-x-1/2 bg-slate-900 text-white px-5 py-3 rounded-full text-sm font-semibold shadow-2xl opacity-0 transition-opacity duration-300 pointer-events-none">
+    메시지
+  </div>
+
+  <script>
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    // 👇 여기를 바꾸면 메뉴가 바뀌어요!
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    const MENU_LIST = [
+      { emoji: '🍜', name: '라면',     category: '한식',   desc: '간단하고 든든하게!' },
+      { emoji: '🍕', name: '피자',     category: '양식',   desc: '오늘은 치팅데이?' },
+      { emoji: '🍣', name: '초밥',     category: '일식',   desc: '신선하게 한 접시!' },
+      { emoji: '🍔', name: '수제버거', category: '양식',   desc: '입이 크게 벌어지는 그 맛' },
+      { emoji: '🍱', name: '도시락',   category: '일식',   desc: '깔끔하고 정갈하게' },
+      { emoji: '🍛', name: '카레',     category: '아시안', desc: '진한 향신료의 매력' },
+      { emoji: '🍝', name: '파스타',   category: '양식',   desc: '크림? 토마토? 오일?' },
+      { emoji: '🌮', name: '타코',     category: '멕시칸', desc: '이국적인 한 입' },
+      { emoji: '🍲', name: '찌개',     category: '한식',   desc: '뜨끈하게 속 풀자' },
+      { emoji: '🥟', name: '만두',     category: '중식',   desc: '한 입에 쏙!' },
+      { emoji: '🍗', name: '치킨',     category: '한식',   desc: '맥주랑 먹으면 완벽' },
+      { emoji: '🍚', name: '비빔밥',   category: '한식',   desc: '고루고루 섞어서' },
+      { emoji: '🥗', name: '샐러드',   category: '헬시',   desc: '가볍게 가자!' },
+      { emoji: '🌯', name: '부리또',   category: '멕시칸', desc: '든든한 한 끼' },
+      { emoji: '🍤', name: '새우튀김', category: '일식',   desc: '바삭함의 정석' },
+      { emoji: '🌭', name: '핫도그',   category: '분식',   desc: '간단하게 한 끼' },
+      { emoji: '🥪', name: '샌드위치', category: '브런치', desc: '가볍게, 가볍게' },
+      { emoji: '🍢', name: '떡볶이',   category: '분식',   desc: '매콤달콤 중독성' },
+      { emoji: '🥞', name: '팬케이크', category: '브런치', desc: '달콤한 하루 시작' },
+      { emoji: '🍖', name: '삼겹살',   category: '한식',   desc: '오늘은 고기가 당겨!' },
+    ];
+
+    // 로딩 지속 시간 (밀리초)
+    const LOADING_DURATION = 1500;
+
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    // 로직 (여기부터는 건드리지 않아도 돼요)
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    const $ = (id) => document.getElementById(id);
+    const pickBtn       = $('pick-btn');
+    const shareBtn      = $('share-btn');
+    const initialState  = $('initial-state');
+    const loadingState  = $('loading-state');
+    const resultState   = $('result-state');
+    const loadingEmoji  = $('loading-emoji');
+    const resultEmoji   = $('result-emoji');
+    const resultName    = $('result-name');
+    const resultCategory= $('result-category');
+    const resultDesc    = $('result-desc');
+    const pickCountEl   = $('pick-count');
+    const toast         = $('toast');
+
+    let pickCount   = parseInt(localStorage.getItem('pickCount') || '0');
+    let currentMenu = null;
+    let isLoading   = false;
+
+    pickCountEl.textContent = pickCount;
+
+    // 메뉴 뽑기
+    function pickMenu() {
+      if (isLoading) return;
+      isLoading = true;
+
+      // 화면 상태 전환: 초기/결과 → 로딩
+      initialState.classList.add('hidden');
+      resultState.classList.add('hidden');
+      loadingState.classList.remove('hidden');
+      shareBtn.classList.add('hidden');
+      pickBtn.disabled = true;
+      pickBtn.classList.add('opacity-70', 'pointer-events-none');
+      pickBtn.textContent = '고르는 중...';
+
+      // 로딩 동안 이모지 빠르게 바꿔서 "돌아가는" 느낌 연출
+      const rollInterval = setInterval(() => {
+        const rand = MENU_LIST[Math.floor(Math.random() * MENU_LIST.length)];
+        loadingEmoji.textContent = rand.emoji;
+      }, 80);
+
+      setTimeout(() => {
+        clearInterval(rollInterval);
+
+        // 직전과 같은 메뉴는 피해서 뽑기
+        let picked;
+        do {
+          picked = MENU_LIST[Math.floor(Math.random() * MENU_LIST.length)];
+        } while (currentMenu && picked.name === currentMenu.name && MENU_LIST.length > 1);
+        currentMenu = picked;
+
+        // 결과 화면 렌더
+        resultEmoji.textContent    = picked.emoji;
+        resultName.textContent     = picked.name;
+        resultCategory.textContent = picked.category;
+        resultDesc.textContent     = picked.desc;
+
+        loadingState.classList.add('hidden');
+        resultState.classList.remove('hidden');
+
+        // 애니메이션 재시작을 위한 리플로우
+        resultState.classList.remove('pop-in');
+        void resultState.offsetWidth;
+        resultState.classList.add('pop-in');
+
+        shareBtn.classList.remove('hidden');
+        shareBtn.classList.add('fade-in-up');
+        pickBtn.disabled = false;
+        pickBtn.classList.remove('opacity-70', 'pointer-events-none');
+        pickBtn.textContent = '🎲 다시 뽑기';
+
+        // 카운트 업데이트
+        pickCount++;
+        localStorage.setItem('pickCount', pickCount);
+        pickCountEl.textContent = pickCount;
+
+        isLoading = false;
+      }, LOADING_DURATION);
+    }
+
+    // 결과 공유 (지원하면 네이티브 공유, 아니면 클립보드 복사)
+    function shareResult() {
+      if (!currentMenu) return;
+      const text = `오늘 뭐 먹지? 🍽️\n내 오늘의 메뉴는 "${currentMenu.emoji} ${currentMenu.name}"!\n${currentMenu.desc}`;
+      if (navigator.share) {
+        navigator.share({ title: '오늘 뭐 먹지?', text }).catch(() => {});
+      } else if (navigator.clipboard) {
+        navigator.clipboard.writeText(text).then(() => showToast('복사됐어요! ✨'));
+      } else {
+        showToast('공유를 지원하지 않는 브라우저예요 😢');
+      }
+    }
+
+    // 토스트 알림
+    function showToast(msg) {
+      toast.textContent = msg;
+      toast.style.opacity = '1';
+      clearTimeout(showToast._t);
+      showToast._t = setTimeout(() => { toast.style.opacity = '0'; }, 2000);
+    }
+
+    pickBtn.addEventListener('click', pickMenu);
+    shareBtn.addEventListener('click', shareResult);
+  </script>
+</body>
+</html>

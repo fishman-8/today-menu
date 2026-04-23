@@ -1,0 +1,592 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+  <title>오늘 뭐 사지? 📈</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet" />
+  <style>
+    body { font-family: 'Pretendard', -apple-system, sans-serif; }
+    .mono { font-family: 'JetBrains Mono', monospace; }
+
+    @keyframes fadeInUp {
+      from { opacity: 0; transform: translateY(16px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .fade-in-up { animation: fadeInUp .5s cubic-bezier(.22,1,.36,1); }
+
+    @keyframes pop {
+      0%   { transform: scale(.7); opacity: 0; }
+      60%  { transform: scale(1.05); opacity: 1; }
+      100% { transform: scale(1); }
+    }
+    .pop-in { animation: pop .55s cubic-bezier(.34,1.56,.64,1); }
+
+    @keyframes floaty {
+      0%,100% { transform: translateY(0); }
+      50%     { transform: translateY(-10px); }
+    }
+    .floaty { animation: floaty 2.6s ease-in-out infinite; }
+
+    @keyframes wobble {
+      0%   { transform: rotate(0)    scale(1); }
+      33%  { transform: rotate(-10deg) scale(1.08); }
+      66%  { transform: rotate(10deg)  scale(1.08); }
+      100% { transform: rotate(0)    scale(1); }
+    }
+    .wobble { animation: wobble .5s ease-in-out infinite; }
+
+    @keyframes drift {
+      0%,100% { transform: translate(0,0) scale(1); }
+      50%     { transform: translate(25px,-25px) scale(1.08); }
+    }
+    .drift { animation: drift 12s ease-in-out infinite; }
+
+    @keyframes drawLine {
+      from { stroke-dashoffset: 800; }
+      to   { stroke-dashoffset: 0; }
+    }
+    .spark-line {
+      stroke-dasharray: 800;
+      animation: drawLine 1.4s ease-out forwards;
+    }
+
+    /* 불꽃 점 */
+    @keyframes ping-soft {
+      0%   { transform: scale(1);   opacity: 1; }
+      100% { transform: scale(2.2); opacity: 0; }
+    }
+    .ping-soft::after {
+      content:''; position:absolute; inset:0; border-radius:9999px;
+      background: currentColor; animation: ping-soft 1.4s ease-out infinite;
+    }
+  </style>
+</head>
+<body class="min-h-screen bg-gradient-to-br from-slate-50 via-indigo-50 to-violet-100">
+
+  <!-- 배경 블롭 -->
+  <div class="fixed top-10 -left-10 w-72 h-72 bg-violet-300/40 rounded-full blur-3xl drift -z-10"></div>
+  <div class="fixed bottom-10 -right-10 w-80 h-80 bg-indigo-300/40 rounded-full blur-3xl drift -z-10" style="animation-delay:-6s"></div>
+
+  <main class="max-w-md mx-auto px-5 py-8 min-h-screen flex flex-col">
+
+    <!-- 헤더 -->
+    <header class="text-center mb-5 fade-in-up">
+      <div class="inline-flex items-center gap-2 bg-white/70 backdrop-blur px-3.5 py-1.5 rounded-full text-[11px] font-bold tracking-widest text-indigo-600 mb-3 shadow-sm">
+        <span>KOSDAQ</span>
+        <span class="text-indigo-300">•</span>
+        <span>DAILY PICK</span>
+      </div>
+      <h1 class="text-4xl font-black text-slate-900 leading-tight">
+        오늘 뭐 사지? 📈
+      </h1>
+      <p class="text-slate-500 mt-1.5 text-sm">
+        고르기 귀찮은 날, 랜덤이 정답!
+      </p>
+    </header>
+
+    <!-- 메인 카드 -->
+    <section class="flex-1 mb-5">
+      <article class="w-full bg-white rounded-[2rem] shadow-2xl shadow-indigo-200/60 overflow-hidden">
+
+        <!-- 1. 초기 상태 -->
+        <div id="initial-state" class="p-10 text-center">
+          <div class="text-8xl mb-5 floaty">🎯</div>
+          <p class="text-xl font-extrabold text-slate-700 mb-1">오늘의 종목은?</p>
+          <p class="text-sm text-slate-400">버튼을 눌러 랜덤 픽!</p>
+        </div>
+
+        <!-- 2. 로딩 상태 -->
+        <div id="loading-state" class="hidden p-10 text-center">
+          <div id="loading-emoji" class="text-8xl mb-5 wobble">🎰</div>
+          <p class="text-xl font-extrabold text-slate-700">코스닥 뒤지는 중...</p>
+          <p class="text-sm text-slate-400 mt-1">두근두근 🔍</p>
+          <div class="mt-5 flex justify-center gap-1.5">
+            <span class="w-2 h-2 bg-indigo-400 rounded-full animate-bounce" style="animation-delay:0ms"></span>
+            <span class="w-2 h-2 bg-indigo-400 rounded-full animate-bounce" style="animation-delay:150ms"></span>
+            <span class="w-2 h-2 bg-indigo-400 rounded-full animate-bounce" style="animation-delay:300ms"></span>
+          </div>
+        </div>
+
+        <!-- 3. 결과 상태 -->
+        <div id="result-state" class="hidden">
+
+          <!-- 컬러 헤더 -->
+          <div id="result-header" class="relative px-6 pt-6 pb-12 text-white transition-colors">
+            <div class="flex items-center justify-between text-[10px] font-bold tracking-widest">
+              <span class="bg-white/25 backdrop-blur px-2.5 py-1 rounded-full">KOSDAQ</span>
+              <span class="flex items-center gap-1.5">
+                <span class="relative inline-block w-1.5 h-1.5 rounded-full bg-white ping-soft text-white"></span>
+                <span id="result-sector" class="bg-white/25 backdrop-blur px-2.5 py-1 rounded-full">반도체</span>
+              </span>
+            </div>
+            <div class="mt-6 text-center">
+              <div id="result-emoji" class="text-7xl mb-2 drop-shadow-md">🔋</div>
+              <div id="result-name" class="text-3xl font-black tracking-tight">에코프로비엠</div>
+              <div id="result-code" class="mono text-xs opacity-80 mt-1.5 bg-white/15 inline-block px-2 py-0.5 rounded-md">247540</div>
+            </div>
+          </div>
+
+          <!-- 차트 카드 (헤더 위로 살짝 겹침) -->
+          <div class="-mt-7 mx-5 bg-white rounded-2xl shadow-lg p-4 border border-slate-100">
+            <div class="flex items-center justify-between mb-1.5 text-xs">
+              <span class="font-bold text-slate-500">📊 분위기 차트</span>
+              <span id="result-vibe" class="font-bold text-rose-500">🔥 관심 급상승</span>
+            </div>
+            <div id="result-chart" class="h-16"></div>
+            <p class="text-[10px] text-slate-400 mt-1 text-right">※ 학습용 참고 이미지일 뿐이에요</p>
+          </div>
+
+          <!-- 추천 이유 -->
+          <div class="p-6 pt-5">
+            <h3 class="text-sm font-bold text-slate-900 mb-3 flex items-center gap-1.5">
+              <span class="text-lg">✨</span>
+              <span>오늘의 추천 이유</span>
+            </h3>
+            <ul id="result-reasons" class="space-y-2.5 text-[13.5px] text-slate-700"></ul>
+          </div>
+
+          <!-- 관련 소식 -->
+          <div class="px-6 pb-5">
+            <h3 class="text-sm font-bold text-slate-900 mb-3 flex items-center gap-1.5">
+              <span class="text-lg">📰</span>
+              <span>참고할 만한 기사 · 리포트</span>
+              <span class="ml-auto text-[10px] font-bold text-amber-700 bg-amber-100 px-2 py-0.5 rounded-full">예시</span>
+            </h3>
+            <div id="result-news" class="space-y-2"></div>
+          </div>
+
+          <!-- 카드 내부 경고 -->
+          <div class="mx-6 mb-6 bg-amber-50 border border-amber-200 rounded-xl p-3 text-[11.5px] text-amber-800 leading-relaxed">
+            <span class="font-bold">⚠️ 주의</span> 재미로 즐기는 랜덤 추천이에요. 실제 투자 판단은 본인 책임!
+          </div>
+
+        </div>
+
+      </article>
+    </section>
+
+    <!-- 버튼 -->
+    <div class="space-y-2.5">
+      <button id="pick-btn"
+              class="w-full bg-gradient-to-r from-indigo-600 to-violet-600 text-white font-bold py-4 rounded-2xl text-lg shadow-xl shadow-indigo-400/40 hover:scale-[1.03] active:scale-95 transition-all">
+        🎲 랜덤으로 뽑기
+      </button>
+      <button id="share-btn"
+              class="w-full bg-white/80 backdrop-blur text-slate-700 font-semibold py-3 rounded-2xl border-2 border-white hover:bg-white active:scale-95 transition-all hidden">
+        📸 친구한테 공유하기
+      </button>
+    </div>
+
+    <!-- 통계 -->
+    <div class="text-center mt-5 text-xs text-slate-500">
+      지금까지 <span id="pick-count" class="font-bold text-indigo-500">0</span>번 뽑았어요
+    </div>
+
+    <!-- 푸터 -->
+    <footer class="mt-8 text-center text-[10.5px] text-slate-400 leading-relaxed pb-4">
+      이 앱은 재미를 위한 랜덤 추천기예요. 제공되는 모든 문구는 학습용 예시이며<br/>
+      투자 자문이나 실제 기업 분석이 아닙니다. 투자는 본인 책임입니다.
+    </footer>
+
+  </main>
+
+  <!-- 토스트 -->
+  <div id="toast" class="fixed bottom-8 left-1/2 -translate-x-1/2 bg-slate-900 text-white px-5 py-3 rounded-full text-sm font-semibold shadow-2xl opacity-0 transition-opacity duration-300 pointer-events-none z-50">
+    메시지
+  </div>
+
+  <script>
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    // 👇 여기를 바꾸면 추천 종목이 바뀌어요!
+    //    (reasons 는 5개 이상 짧은 단문으로)
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    const STOCK_LIST = [
+      {
+        code: '247540', name: '에코프로비엠', emoji: '🔋', sector: '2차전지·양극재',
+        colors: ['#10b981', '#059669'], chartColor: '#10b981',
+        vibe: '🔥 테마 주도주',
+        reasons: [
+          '전기차·ESS 시장 장기 성장의 대표 수혜주',
+          '하이니켈 양극재 분야 핵심 플레이어',
+          'AI 데이터센터 전력 수요 확대 기대감',
+          '글로벌 배터리사와 공급망이 깊게 엮임',
+          '해외 공장 증설로 생산능력 확대 중',
+          '2차전지 섹터 반등 시 탄력성이 큰 편'
+        ],
+        news: [
+          { title: '양극재 수요, AI 시대 ESS까지 확대된다', source: '예시경제일보' },
+          { title: '2차전지 업황 리포트 — 하반기 모멘텀 점검', source: '예시증권 리서치' }
+        ]
+      },
+      {
+        code: '196170', name: '알테오젠', emoji: '🧬', sector: '바이오·제약',
+        colors: ['#8b5cf6', '#7c3aed'], chartColor: '#8b5cf6',
+        vibe: '✨ 플랫폼 원천기술',
+        reasons: [
+          '피하주사(SC) 제형변경 플랫폼 원천 기술 보유',
+          '글로벌 빅파마와 라이선스 아웃 이력',
+          '로열티 기반 현금흐름 구조 기대감',
+          '바이오 섹터 랠리 때 주도주로 자주 꼽힘',
+          '임상 데이터 공개 시점마다 관심도 급상승',
+          '플랫폼 기술주는 확장성으로 재평가가 쉬움'
+        ],
+        news: [
+          { title: '국내 바이오, 라이선스 아웃 계약 활황세', source: '예시바이오뉴스' },
+          { title: '플랫폼 기술주 재평가 흐름 — 섹터 분석', source: '예시리서치' }
+        ]
+      },
+      {
+        code: '277810', name: '레인보우로보틱스', emoji: '🤖', sector: '로봇·AI',
+        colors: ['#3b82f6', '#1d4ed8'], chartColor: '#3b82f6',
+        vibe: '🚀 성장 기대감',
+        reasons: [
+          '휴머노이드·협동 로봇 분야 선도 기업',
+          '대기업 지분 참여로 시장 관심 지속',
+          '로봇 산업 정책 수혜 섹터에 속함',
+          'AI + 피지컬 결합 테마에 딱 맞음',
+          '글로벌 로봇 수요 확대 스토리 지속',
+          '테마 사이클에서 상위 베팅 대상이 되는 종목'
+        ],
+        news: [
+          { title: '로봇 테마, AI 다음 성장축으로 주목', source: '예시기술신문' },
+          { title: '휴머노이드 시장 전망 리포트', source: '예시리서치' }
+        ]
+      },
+      {
+        code: '058470', name: '리노공업', emoji: '💎', sector: '반도체 부품',
+        colors: ['#6366f1', '#4338ca'], chartColor: '#6366f1',
+        vibe: '💪 꾸준한 실적주',
+        reasons: [
+          '반도체 테스트 핀 분야 글로벌 경쟁력 보유',
+          '팹리스·OSAT 고객사를 폭넓게 확보',
+          'AI 반도체 확산으로 테스트 수요 증가',
+          '높은 영업이익률로 유명한 알짜 기업',
+          '변동성이 낮아 안정적인 성향이 강함',
+          '배당도 꾸준해 장기 관점에서 매력 있다는 평'
+        ],
+        news: [
+          { title: '반도체 테스트 솔루션 수요 꾸준', source: '예시반도체뉴스' },
+          { title: 'AI 칩 후공정 서플라이체인 리포트', source: '예시리서치' }
+        ]
+      },
+      {
+        code: '403870', name: 'HPSP', emoji: '⚙️', sector: '반도체 장비',
+        colors: ['#0ea5e9', '#0369a1'], chartColor: '#0ea5e9',
+        vibe: '🔧 니치 강자',
+        reasons: [
+          '고압 수소 어닐링 장비 독점적 지위',
+          '글로벌 파운드리가 주요 고객',
+          '첨단공정 전환의 직접 수혜 포지션',
+          '상대적으로 높은 이익률이 매력 포인트',
+          'HBM·선단 공정 확대가 실적 모멘텀',
+          '니치 장비주 리레이팅 사이클의 단골'
+        ],
+        news: [
+          { title: '첨단 반도체 공정 확대와 장비주 수혜', source: '예시산업일보' },
+          { title: '파운드리 CAPEX 사이클 전망', source: '예시리서치' }
+        ]
+      },
+      {
+        code: '035900', name: 'JYP엔터테인먼트', emoji: '🎤', sector: 'K-POP 엔터',
+        colors: ['#ec4899', '#be185d'], chartColor: '#ec4899',
+        vibe: '💖 글로벌 팬덤',
+        reasons: [
+          '글로벌 K-POP 성장 흐름의 대표 수혜주',
+          '다수 인기 아티스트 IP 보유',
+          '일본·미국 현지화 전략으로 매출 다변화',
+          '콘서트·앨범 사이클이 실적에 직결',
+          '음악 플랫폼·MD로 수익원 다각화',
+          '엔터 섹터 반등 시 가장 빠르게 반응'
+        ],
+        news: [
+          { title: 'K-POP 글로벌 수요, 투어 회복에 가속', source: '예시엔터뉴스' },
+          { title: '엔터 산업 하반기 전망 리포트', source: '예시리서치' }
+        ]
+      },
+      {
+        code: '293490', name: '카카오게임즈', emoji: '🎮', sector: '게임',
+        colors: ['#f59e0b', '#b45309'], chartColor: '#f59e0b',
+        vibe: '🎯 신작 파이프라인',
+        reasons: [
+          '카카오 그룹의 게임 퍼블리싱·개발 법인',
+          '모바일·PC·콘솔 멀티 플랫폼 전략',
+          '신작 파이프라인이 실적 모멘텀 핵심',
+          '글로벌 유통 채널 경험 풍부',
+          '게임주는 신작 발표 시점에 반응이 큼',
+          '플랫폼 다각화로 포트폴리오 리스크 분산'
+        ],
+        news: [
+          { title: '국내 게임사, 글로벌 신작 출시 랠리', source: '예시게임뉴스' },
+          { title: '콘솔·크로스플레이 전환 리포트', source: '예시리서치' }
+        ]
+      },
+      {
+        code: '263750', name: '펄어비스', emoji: '⚔️', sector: '게임·MMO',
+        colors: ['#f43f5e', '#be123c'], chartColor: '#f43f5e',
+        vibe: '⚔️ IP 파워',
+        reasons: [
+          '글로벌 MMO IP 보유',
+          '자체 엔진 기반 개발력이 강점',
+          '차기작 기대감이 장기 테마로 작용',
+          '해외 매출 비중이 높은 편',
+          '신작 공개 시 변동성이 큰 모멘텀 주식',
+          '게임 섹터 리레이팅 때 상위 베팅 대상'
+        ],
+        news: [
+          { title: '글로벌 MMO 경쟁 지형 변화', source: '예시게임나라' },
+          { title: '차세대 엔진 기반 게임 개발 트렌드', source: '예시리서치' }
+        ]
+      },
+      {
+        code: '214150', name: '클래시스', emoji: '💆', sector: '미용 의료기기',
+        colors: ['#f472b6', '#db2777'], chartColor: '#f472b6',
+        vibe: '💫 글로벌 확장',
+        reasons: [
+          '초음파 리프팅 장비 분야 글로벌 인지도',
+          '소모품 매출이 안정적 수익 기반',
+          '해외 시장 확장 속도가 빠른 편',
+          '미용 의료기기 시장 장기 성장 수혜',
+          '높은 마진율을 유지해온 실적주',
+          '중남미·아시아 수요 확대가 성장 포인트'
+        ],
+        news: [
+          { title: '글로벌 미용 의료기기 시장 성장 지속', source: '예시헬스뉴스' },
+          { title: '에스테틱 기기 업체 경쟁력 분석', source: '예시리서치' }
+        ]
+      },
+      {
+        code: '257720', name: '실리콘투', emoji: '💄', sector: 'K-뷰티 유통',
+        colors: ['#db2777', '#9d174d'], chartColor: '#db2777',
+        vibe: '🌍 수출 드라이브',
+        reasons: [
+          'K-뷰티 역직구·B2B 유통의 핵심 플레이어',
+          '글로벌 K-뷰티 열풍의 직접 수혜주',
+          '미국·동남아 등 수출 지역 다변화',
+          '중소 브랜드의 글로벌 게이트웨이 역할',
+          '소비재 성장 테마와 시너지',
+          '브랜드 풍년 시대의 유통 수수료 수혜'
+        ],
+        news: [
+          { title: 'K-뷰티 수출, 미국 중심으로 가속', source: '예시뷰티뉴스' },
+          { title: '인디 뷰티 브랜드 유통 생태계 리포트', source: '예시리서치' }
+        ]
+      },
+      {
+        code: '005290', name: '동진쎄미켐', emoji: '🧪', sector: '반도체 소재',
+        colors: ['#06b6d4', '#0e7490'], chartColor: '#06b6d4',
+        vibe: '🧬 소재 국산화',
+        reasons: [
+          '포토레지스트 등 반도체 핵심 소재 공급',
+          '소재 국산화 테마의 대표 종목',
+          '디스플레이·2차전지 소재까지 다각화',
+          '첨단공정 확대 시 수요가 늘어나는 구조',
+          '장기적 소부장 정책 수혜 가능성',
+          '반도체 업황 회복 시 실적 레버리지'
+        ],
+        news: [
+          { title: '반도체 소재 국산화 흐름 지속', source: '예시산업일보' },
+          { title: 'EUV 시대 소재 시장 전망', source: '예시리서치' }
+        ]
+      },
+      {
+        code: '041510', name: '에스엠', emoji: '🎶', sector: 'K-POP 엔터',
+        colors: ['#a855f7', '#6b21a8'], chartColor: '#a855f7',
+        vibe: '🌟 IP 자산가',
+        reasons: [
+          '1세대 K-POP 엔터테인먼트사',
+          '다수 글로벌 아티스트 IP 풍부',
+          '음반·공연·MD 수익 구조 다각화',
+          '팬덤 플랫폼 관련 테마와 시너지',
+          '엔터 섹터 반등 때 대장주 중 하나',
+          '경영 정상화 이후 내부 개선 기대'
+        ],
+        news: [
+          { title: 'K-POP 공연 수익, 역대 최고 수준 근접', source: '예시엔터매거진' },
+          { title: '엔터 플랫폼 수익 모델 분석', source: '예시리서치' }
+        ]
+      }
+    ];
+
+    // 로딩 지속 시간
+    const LOADING_DURATION = 1800;
+
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    // 로직 (여기부터는 건드리지 않아도 돼요)
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    const $ = (id) => document.getElementById(id);
+    const pickBtn      = $('pick-btn');
+    const shareBtn     = $('share-btn');
+    const initialState = $('initial-state');
+    const loadingState = $('loading-state');
+    const resultState  = $('result-state');
+    const loadingEmoji = $('loading-emoji');
+    const resultHeader = $('result-header');
+    const resultEmoji  = $('result-emoji');
+    const resultName   = $('result-name');
+    const resultCode   = $('result-code');
+    const resultSector = $('result-sector');
+    const resultVibe   = $('result-vibe');
+    const resultChart  = $('result-chart');
+    const resultReasons= $('result-reasons');
+    const resultNews   = $('result-news');
+    const pickCountEl  = $('pick-count');
+    const toast        = $('toast');
+
+    let pickCount   = parseInt(localStorage.getItem('stockPickCount') || '0');
+    let currentStock= null;
+    let isLoading   = false;
+
+    pickCountEl.textContent = pickCount;
+
+    // 스파크라인 SVG 생성 — 살짝 상승 편향의 랜덤 워크
+    function generateSparkPoints(n = 22) {
+      let v = 50; const pts = [];
+      for (let i = 0; i < n; i++) {
+        v += (Math.random() - 0.38) * 12;
+        v = Math.max(15, Math.min(85, v));
+        pts.push(v);
+      }
+      return pts;
+    }
+
+    function renderSpark(points, color) {
+      const W = 300, H = 64;
+      const max = Math.max(...points), min = Math.min(...points);
+      const range = max - min || 1;
+      const stepX = W / (points.length - 1);
+      const coords = points.map((v, i) => [i * stepX, H - ((v - min) / range) * H]);
+      const line = coords.map((c, i) =>
+        (i === 0 ? `M${c[0].toFixed(1)},${c[1].toFixed(1)}` : `L${c[0].toFixed(1)},${c[1].toFixed(1)}`)
+      ).join(' ');
+      const area = line + ` L${W},${H} L0,${H} Z`;
+      const id = 'g' + Math.random().toString(36).slice(2, 8);
+      return `<svg viewBox="0 0 ${W} ${H}" class="w-full h-16" preserveAspectRatio="none">
+        <defs>
+          <linearGradient id="${id}" x1="0" x2="0" y1="0" y2="1">
+            <stop offset="0%" stop-color="${color}" stop-opacity="0.35"/>
+            <stop offset="100%" stop-color="${color}" stop-opacity="0"/>
+          </linearGradient>
+        </defs>
+        <path d="${area}" fill="url(#${id})"/>
+        <path d="${line}" fill="none" stroke="${color}" stroke-width="2.5"
+              stroke-linecap="round" stroke-linejoin="round" class="spark-line"/>
+      </svg>`;
+    }
+
+    // 결과 화면 렌더링
+    function renderStock(stock) {
+      resultHeader.style.background =
+        `linear-gradient(135deg, ${stock.colors[0]}, ${stock.colors[1]})`;
+      resultEmoji.textContent   = stock.emoji;
+      resultName.textContent    = stock.name;
+      resultCode.textContent    = stock.code;
+      resultSector.textContent  = stock.sector;
+      resultVibe.textContent    = stock.vibe;
+
+      // 차트
+      resultChart.innerHTML = renderSpark(generateSparkPoints(), stock.chartColor);
+
+      // 추천 이유 - 각 항목 아이콘 순환
+      const icons = ['💡', '📊', '🎯', '🚀', '✨', '🔥', '🌱', '⚡️'];
+      resultReasons.innerHTML = stock.reasons.map((r, i) => `
+        <li class="flex gap-2.5 items-start">
+          <span class="text-base leading-none mt-0.5">${icons[i % icons.length]}</span>
+          <span class="flex-1 leading-snug">${r}</span>
+        </li>
+      `).join('');
+
+      // 뉴스
+      resultNews.innerHTML = stock.news.map(n => `
+        <div class="bg-slate-50 rounded-xl p-3 border-l-[3px]" style="border-color:${stock.chartColor}">
+          <div class="text-[11px] font-bold mb-0.5" style="color:${stock.chartColor}">
+            📄 ${n.source}
+          </div>
+          <div class="text-[13.5px] font-semibold text-slate-800 leading-snug">
+            ${n.title}
+          </div>
+        </div>
+      `).join('');
+    }
+
+    // 뽑기
+    function pickStock() {
+      if (isLoading) return;
+      isLoading = true;
+
+      initialState.classList.add('hidden');
+      resultState.classList.add('hidden');
+      loadingState.classList.remove('hidden');
+      shareBtn.classList.add('hidden');
+      pickBtn.disabled = true;
+      pickBtn.classList.add('opacity-70', 'pointer-events-none');
+      pickBtn.textContent = '고르는 중...';
+
+      // 로딩 중 이모지를 종목 이모지들로 빠르게 순환
+      const rollInterval = setInterval(() => {
+        const rand = STOCK_LIST[Math.floor(Math.random() * STOCK_LIST.length)];
+        loadingEmoji.textContent = rand.emoji;
+      }, 90);
+
+      setTimeout(() => {
+        clearInterval(rollInterval);
+
+        let picked;
+        do {
+          picked = STOCK_LIST[Math.floor(Math.random() * STOCK_LIST.length)];
+        } while (currentStock && picked.code === currentStock.code && STOCK_LIST.length > 1);
+        currentStock = picked;
+
+        renderStock(picked);
+
+        loadingState.classList.add('hidden');
+        resultState.classList.remove('hidden');
+
+        // 애니메이션 재시작
+        resultState.classList.remove('pop-in');
+        void resultState.offsetWidth;
+        resultState.classList.add('pop-in');
+
+        shareBtn.classList.remove('hidden');
+        shareBtn.classList.add('fade-in-up');
+        pickBtn.disabled = false;
+        pickBtn.classList.remove('opacity-70', 'pointer-events-none');
+        pickBtn.textContent = '🎲 다시 뽑기';
+
+        pickCount++;
+        localStorage.setItem('stockPickCount', pickCount);
+        pickCountEl.textContent = pickCount;
+
+        isLoading = false;
+      }, LOADING_DURATION);
+    }
+
+    // 공유
+    function shareResult() {
+      if (!currentStock) return;
+      const text = `오늘 뭐 사지? 📈\n내 오늘의 종목 → "${currentStock.emoji} ${currentStock.name} (${currentStock.code})"\n[${currentStock.sector}]\n\n※ 재미로 즐기는 랜덤 추천입니다.`;
+      if (navigator.share) {
+        navigator.share({ title: '오늘 뭐 사지?', text }).catch(() => {});
+      } else if (navigator.clipboard) {
+        navigator.clipboard.writeText(text).then(() => showToast('복사됐어요! ✨'));
+      } else {
+        showToast('공유를 지원하지 않는 브라우저예요 😢');
+      }
+    }
+
+    function showToast(msg) {
+      toast.textContent = msg;
+      toast.style.opacity = '1';
+      clearTimeout(showToast._t);
+      showToast._t = setTimeout(() => { toast.style.opacity = '0'; }, 2000);
+    }
+
+    pickBtn.addEventListener('click', pickStock);
+    shareBtn.addEventListener('click', shareResult);
+  </script>
+</body>
+</html>
