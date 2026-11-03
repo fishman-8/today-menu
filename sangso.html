@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>제갈량의 아침 상소문 📜</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Nanum+Myeongjo:wght@400;700;800&display=swap" rel="stylesheet" />
+  <link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" rel="stylesheet" />
+  <style>
+    body { font-family: 'Pretendard', sans-serif; }
+    .brush { font-family: 'Nanum Myeongjo', serif; }
+    @keyframes unroll { from { clip-path: inset(0 0 100% 0); opacity: 0 } to { clip-path: inset(0 0 0 0); opacity: 1 } }
+    @keyframes rise { from { opacity: 0; transform: translateY(14px) } to { opacity: 1; transform: translateY(0) } }
+    @keyframes stamp { 0% { transform: scale(2.4) rotate(-20deg); opacity: 0 } 70% { transform: scale(.92) rotate(-8deg); opacity: 1 } 100% { transform: scale(1) rotate(-8deg); opacity: .92 } }
+    @keyframes floaty { 0%,100% { transform: translateY(0) } 50% { transform: translateY(-6px) } }
+    .unroll { animation: unroll 1.2s ease-out both }
+    .rise { opacity: 0; animation: rise .7s ease-out forwards }
+    .stamp { animation: stamp .6s ease-out both }
+    .floaty { animation: floaty 3s ease-in-out infinite }
+    .paper { background: linear-gradient(180deg, #fbf3dc 0%, #f4e7c1 100%); }
+  </style>
+</head>
+<body class="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-amber-950 text-slate-800">
+  <main class="max-w-md mx-auto px-5 py-10">
+
+    <!-- 제목 -->
+    <header class="text-center mb-8">
+      <div class="text-6xl floaty">🪭</div>
+      <h1 class="brush mt-3 text-3xl font-extrabold text-amber-300 tracking-wide">제갈량의 아침 상소문</h1>
+      <p id="todayLabel" class="mt-2 text-sm text-amber-100/70"></p>
+    </header>
+
+    <!-- 로딩 (두루마리 펼치기 전) -->
+    <div id="loading" class="text-center text-amber-200/80 py-16">
+      <div class="text-5xl animate-bounce">📜</div>
+      <p class="mt-4 brush">군사가 붓을 들고 있사옵니다…</p>
+    </div>
+
+    <!-- 상소문 본문 -->
+    <article id="scroll" class="hidden paper rounded-3xl shadow-2xl p-7 relative border-y-8 border-amber-800/70">
+      <div id="content" class="brush leading-8 text-[15.5px] space-y-6"></div>
+
+      <div class="mt-8 flex items-end justify-between">
+        <div class="brush text-sm text-slate-600">
+          신(臣) 제갈량<br />삼가 올리나이다
+        </div>
+        <div id="seal" class="hidden stamp w-16 h-16 rounded-xl bg-red-700 text-amber-50 brush font-extrabold text-xl leading-5 flex items-center justify-center text-center shadow-lg">
+          孔<br />明
+        </div>
+      </div>
+    </article>
+
+    <!-- 버튼 -->
+    <div id="actions" class="hidden mt-8 grid grid-cols-2 gap-3">
+      <button id="nextBtn" class="py-4 rounded-2xl bg-gradient-to-r from-amber-500 to-orange-500 text-slate-900 font-bold shadow-xl hover:scale-105 active:scale-95 transition-transform">
+        📜 다른 상소 보기
+      </button>
+      <button id="copyBtn" class="py-4 rounded-2xl bg-gradient-to-r from-red-700 to-rose-600 text-white font-bold shadow-xl hover:scale-105 active:scale-95 transition-transform">
+        📋 상소문 복사
+      </button>
+    </div>
+
+    <p class="text-center text-xs text-amber-100/40 mt-8">같은 날엔 같은 상소가, 내일은 새 상소가 올라와요 ✨</p>
+  </main>
+
+  <div id="toast" class="fixed bottom-8 left-1/2 -translate-x-1/2 bg-amber-100 text-slate-900 px-5 py-3 rounded-2xl shadow-xl opacity-0 pointer-events-none transition-all duration-300 z-50 text-sm font-semibold"></div>
+
+  <script>
+    // ====================================================
+    // 👇 여기를 바꾸면 상소문 내용이 바뀌어요 (전부 한국어로 자유롭게 수정 가능)
+    // ====================================================
+    const CONFIG = {
+      lordName: '주공',   // 군사가 부르는 호칭 (예: 대감, 사장님, 주공)
+
+      // 군사가 주공에 대해 알고 있는 것 (대화에서 알게 된 내용)
+      profile: [
+        '코딩을 모르셔도 직접 앱을 기획하고 만들어 내시는 분',
+        '오늘의 메뉴, 주식 화면, 가위바위보까지 이미 세 개의 작품을 이루신 분',
+        '예쁘고 재미있어서 친구에게 보여주고 싶은 결과물을 좋아하시는 분'
+      ],
+
+      // 오늘의 간언 (하루에 하나씩 돌아가며 나와요)
+      advice: [
+        '완벽을 기다리지 마시고, 오늘 만든 것을 먼저 한 사람에게 보여주소서. 반응 한 줄이 열 번의 고민보다 값지옵니다.',
+        '이미 만드신 작품이 셋이옵니다. 새것을 또 짓기 전에, 가장 아끼는 하나를 한 번 더 다듬어 보시옵소서.',
+        '큰 일을 작게 쪼개소서. 오늘은 "화면 하나, 버튼 하나"만 완성하셔도 승리이옵니다.',
+        '만든 것은 링크로 만들어 두소서. 보낼 수 있는 작품만이 세상에 쓰이옵니다.',
+        '막히는 곳이 있으면 부끄러워 마시고 군사에게 그대로 물어보소서. 모르는 것을 묻는 것이 가장 빠른 길이옵니다.',
+        '오늘의 작은 개선 하나가 한 달 뒤에는 큰 차이가 되오니, 매일 한 가지만 고치는 습관을 들이시옵소서.',
+        '남의 앱을 하나 써 보고 "여기가 좋다"를 세 가지 적어 두소서. 눈이 높아지면 작품이 달라지옵니다.',
+        '쉬는 것도 병법이옵니다. 오늘은 한 시간만 일하시고 한 시간은 산책하시어 머리를 비우소서.',
+        '설명서보다 한 번의 시연이 낫사옵니다. 만든 것을 직접 눌러 보이며 이야기해 보소서.',
+        '내 작품의 이름과 이모지를 다시 지어 보소서. 귀여운 이름 하나가 공유의 절반이옵니다.'
+      ],
+
+      // 오늘의 업무 (3개씩 골라서 올려요)
+      tasks: [
+        '가위바위보에 "3판 2선승 / 5판 3선승" 모드 선택 버튼을 더해 보기',
+        '오늘의 메뉴 앱에 "어제 먹은 메뉴 제외" 기능 구상해 보기',
+        '만든 앱 세 개를 한곳에서 고르는 "시작 화면" 하나 만들기',
+        '작품 하나를 친구 한 명에게 링크로 보내고 한 줄 후기 받기',
+        '스크린샷을 찍어 공유했을 때 예쁜 화면인지 점검하기',
+        '주식 화면에 매일 보는 관심 종목 목록 정리해 두기',
+        '새로 만들고 싶은 앱 아이디어를 메모에 세 줄로 적어 보기',
+        '앱마다 어울리는 포인트 색 한 가지씩 정해 보기',
+        '효과음이나 진동 같은 작은 재미 요소 하나 넣어 보기',
+        '오늘 만든 것 중 가장 마음에 드는 장면을 캡처해 모아 두기'
+      ],
+
+      // 천하 동향 (2개씩 골라서 올려요) — 직접 관심 있는 것으로 바꿔 보세요
+      // ※ 실시간 뉴스가 아니라 군사가 미리 적어 둔 목록이에요
+      trends: [
+        { emoji: '🤖', title: 'AI와 함께 앱 만들기', why: '말로 설명하면 화면이 나오는 시대이옵니다. 주공께서 이미 걷고 계신 길이니 더 깊이 들어가 보소서.' },
+        { emoji: '🎮', title: '짧고 가벼운 미니 게임', why: '몇 분이면 끝나는 게임이 메신저로 퍼지고 있사옵니다. 가위바위보 같은 작품이 딱이옵니다.' },
+        { emoji: '🍜', title: '"오늘 뭐 먹지"류 결정 도우미', why: '선택 피로를 덜어 주는 서비스가 사랑받사옵니다. 오늘의 메뉴 앱이 이 흐름에 맞사옵니다.' },
+        { emoji: '📈', title: '개인용 투자 대시보드', why: '내게 필요한 숫자만 모아 보는 화면이 인기이옵니다. 보는 용도로 두시고 판단은 신중히 하소서.' },
+        { emoji: '🎨', title: '말랑한 감성 UI', why: '둥근 모서리와 부드러운 그라디언트가 여전히 대세이옵니다. 우리 작품의 결과 같사옵니다.' },
+        { emoji: '🔗', title: '링크 하나로 공유되는 웹앱', why: '설치 없이 링크만으로 쓰는 서비스가 퍼지기 쉽사옵니다. 파일 하나짜리 우리 앱이 유리하옵니다.' },
+        { emoji: '🗓️', title: '나만의 아침 루틴 앱', why: '하루의 시작을 정리해 주는 서비스가 늘고 있사옵니다. 이 상소문도 그 한 가지이옵니다.' },
+        { emoji: '🏆', title: '작은 보상과 연승 기록', why: '연승, 뱃지, 컨페티 같은 작은 보상이 다시 찾아오게 하옵니다.' }
+      ]
+    };
+
+    // ====================================================
+    // 로직 (여기부터는 안 건드리셔도 돼요)
+    // ====================================================
+    const $ = (id) => document.getElementById(id);
+    const DAY_NAMES = ['일', '월', '화', '수', '목', '금', '토'];
+    const GREETINGS = {
+      0: '일요일의 여유로운 아침이옵니다.',
+      1: '새로운 한 주가 열렸사옵니다.',
+      2: '한 주의 기세를 이어 가는 화요일이옵니다.',
+      3: '한 주의 중턱, 수요일이옵니다.',
+      4: '목요일, 마무리가 보이기 시작하옵니다.',
+      5: '금요일, 한 주를 빛낼 마지막 날이옵니다.',
+      6: '토요일, 마음껏 만들어 보는 날이옵니다.'
+    };
+
+    let offset = 0;          // "다른 상소 보기"를 누를 때마다 늘어나요
+    let plainText = '';      // 복사용 글
+
+    // 오늘이 올해 몇 번째 날인지 (하루에 한 번씩 내용이 바뀌게 하려고)
+    function getDayNumber() {
+      const now = new Date();
+      const start = new Date(now.getFullYear(), 0, 0);
+      return Math.floor((now - start) / 86400000);
+    }
+
+    // 목록을 돌려 쓰기
+    function pick(list, index, count) {
+      const result = [];
+      for (let i = 0; i < count; i++) result.push(list[(index + i) % list.length]);
+      return result;
+    }
+
+    function showToast(text) {
+      const t = $('toast');
+      t.textContent = text;
+      t.classList.remove('opacity-0');
+      clearTimeout(showToast.timer);
+      showToast.timer = setTimeout(() => t.classList.add('opacity-0'), 1800);
+    }
+
+    function buildSangso() {
+      const now = new Date();
+      const day = now.getDay();
+      const seed = getDayNumber() + offset;
+      const lord = CONFIG.lordName;
+
+      const advice = pick(CONFIG.advice, seed, 1)[0];
+      const tasks = pick(CONFIG.tasks, seed * 3, 3);
+      const trends = pick(CONFIG.trends, seed * 2, 2);
+      const praise = pick(CONFIG.profile, seed, 1)[0];
+
+      const sections = [
+        {
+          title: '一 · 문안',
+          html: `<p>신 제갈량, 머리를 조아려 아뢰옵니다. ${GREETINGS[day]}<br />소신이 살펴보건대 ${lord}께서는 <b>${praise}</b>이시니, 오늘도 능히 큰 뜻을 이루시리라 믿사옵니다.</p>`
+        },
+        {
+          title: '二 · 오늘의 간언',
+          html: `<p>${advice}</p>`
+        },
+        {
+          title: '三 · 오늘 올리는 세 가지 일',
+          html: `<ol class="list-decimal pl-5 space-y-1">${tasks.map((t) => `<li>${t}</li>`).join('')}</ol>`
+        },
+        {
+          title: '四 · 천하의 동향',
+          html: trends.map((t) => `<p class="mb-2"><b>${t.emoji} ${t.title}</b><br /><span class="text-slate-700">${t.why}</span></p>`).join('')
+        },
+        {
+          title: '五 · 맺음말',
+          html: `<p>${lord}의 하루가 평안하고 만든 작품마다 빛나기를 바라며, 이만 물러가옵니다. 부디 강녕하소서.</p>`
+        }
+      ];
+
+      // 화면 그리기 (한 장면씩 순서대로 나타나게)
+      $('content').innerHTML = sections.map((s, i) => `
+        <section class="rise" style="animation-delay:${0.5 + i * 0.5}s">
+          <h2 class="text-xs font-extrabold text-red-800 tracking-widest mb-2">${s.title}</h2>
+          ${s.html}
+        </section>`).join('');
+
+      // 복사용 글 (태그 제거)
+      const tmp = document.createElement('div');
+      tmp.innerHTML = sections.map((s) => `【${s.title}】\n${s.html.replace(/<br\s*\/?>/g, '\n').replace(/<\/li>/g, '\n')}`).join('\n\n');
+      plainText = `📜 제갈량의 아침 상소문 (${now.getMonth() + 1}/${now.getDate()})\n\n${tmp.textContent.trim()}\n\n신 제갈량 올림`;
+
+      $('todayLabel').textContent = `${now.getFullYear()}년 ${now.getMonth() + 1}월 ${now.getDate()}일 ${DAY_NAMES[day]}요일`;
+    }
+
+    function openScroll() {
+      $('loading').classList.add('hidden');
+      $('scroll').classList.remove('hidden', 'unroll');
+      void $('scroll').offsetWidth;
+      $('scroll').classList.add('unroll');
+      $('actions').classList.remove('hidden');
+
+      // 도장은 글이 다 나온 뒤에 쾅!
+      $('seal').classList.add('hidden');
+      setTimeout(() => {
+        $('seal').classList.remove('hidden');
+        $('seal').classList.remove('stamp');
+        void $('seal').offsetWidth;
+        $('seal').classList.add('stamp');
+      }, 3200);
+    }
+
+    function showSangso() {
+      buildSangso();
+      openScroll();
+    }
+
+    $('nextBtn').addEventListener('click', () => {
+      offset++;
+      showToast('새 상소를 올리옵니다 📜');
+      showSangso();
+    });
+
+    $('copyBtn').addEventListener('click', async () => {
+      try {
+        await navigator.clipboard.writeText(plainText);
+        showToast('복사했사옵니다! ✨');
+      } catch (e) {
+        showToast('복사가 안 되었어요. 다시 눌러 주세요 🙏');
+      }
+    });
+
+    // 처음 열면 잠깐 "붓 드는 중" 연출 후 상소문을 펼쳐요
+    $('todayLabel').textContent = '';
+    setTimeout(showSangso, 1200);
+  </script>
+</body>
+</html>
