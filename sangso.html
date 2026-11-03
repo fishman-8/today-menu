@@ -109,17 +109,23 @@
         '오늘 만든 것 중 가장 마음에 드는 장면을 캡처해 모아 두기'
       ],
 
-      // 천하 동향 (2개씩 골라서 올려요) — 직접 관심 있는 것으로 바꿔 보세요
-      // ※ 실시간 뉴스가 아니라 군사가 미리 적어 둔 목록이에요
+      // 천하의 동향 — 분야별로 하루에 하나씩 돌아가며 나와요
+      // ※ 군사가 찾아 둔 목록이에요. 매일 아침 자동 갱신 작업이 이 부분을 새로 채워요 (updatedAt 참고)
+      updatedAt: '2026-11-03',
       trends: [
-        { emoji: '🤖', title: 'AI와 함께 앱 만들기', why: '말로 설명하면 화면이 나오는 시대이옵니다. 주공께서 이미 걷고 계신 길이니 더 깊이 들어가 보소서.' },
-        { emoji: '🎮', title: '짧고 가벼운 미니 게임', why: '몇 분이면 끝나는 게임이 메신저로 퍼지고 있사옵니다. 가위바위보 같은 작품이 딱이옵니다.' },
-        { emoji: '🍜', title: '"오늘 뭐 먹지"류 결정 도우미', why: '선택 피로를 덜어 주는 서비스가 사랑받사옵니다. 오늘의 메뉴 앱이 이 흐름에 맞사옵니다.' },
-        { emoji: '📈', title: '개인용 투자 대시보드', why: '내게 필요한 숫자만 모아 보는 화면이 인기이옵니다. 보는 용도로 두시고 판단은 신중히 하소서.' },
-        { emoji: '🎨', title: '말랑한 감성 UI', why: '둥근 모서리와 부드러운 그라디언트가 여전히 대세이옵니다. 우리 작품의 결과 같사옵니다.' },
-        { emoji: '🔗', title: '링크 하나로 공유되는 웹앱', why: '설치 없이 링크만으로 쓰는 서비스가 퍼지기 쉽사옵니다. 파일 하나짜리 우리 앱이 유리하옵니다.' },
-        { emoji: '🗓️', title: '나만의 아침 루틴 앱', why: '하루의 시작을 정리해 주는 서비스가 늘고 있사옵니다. 이 상소문도 그 한 가지이옵니다.' },
-        { emoji: '🏆', title: '작은 보상과 연승 기록', why: '연승, 뱃지, 컨페티 같은 작은 보상이 다시 찾아오게 하옵니다.' }
+        // 📈 주식
+        { field: '주식', emoji: '📈', title: '반도체가 시장을 좌우하옵니다', why: '삼성전자와 SK하이닉스가 지수의 절반가량을 차지해, 두 종목의 움직임이 곧 시장의 기세이옵니다. 올해 변동이 컸으니 숫자는 참고만 하소서.' },
+        { field: '주식', emoji: '🗓️', title: '11월은 바닥을 다지는 달이라는 전망', why: '증권가에서는 11월에 바닥을 형성한 뒤 내년 상반기 횡보를 점치는 시각이 있사옵니다. 미국 중간선거와 대형 IPO 소식을 지켜보소서.' },
+        // 🍜 맛집
+        { field: '맛집', emoji: '🍜', title: '서울 미식 100선 발표', why: '올해 서울 미식 100선에서 25곳이 새로 이름을 올렸사옵니다. 새 얼굴 중에서 오늘의 메뉴 후보를 골라 보소서.' },
+        { field: '맛집', emoji: '🥬', title: '채소 중심 식당의 약진', why: '미쉐린 빕 구르망에도 채소 요리로 호평받은 곳이 오르는 등, 식물성 메뉴가 눈길을 끌고 있사옵니다.' },
+        // 🤖 AI
+        { field: 'AI', emoji: '🤖', title: '일을 맡길 수 있는 AI 에이전트', why: '대화만 하는 AI에서 업무를 직접 처리하는 AI로 넘어가는 중이옵니다. 직무별로 특화된 에이전트가 대세이옵니다.' },
+        { field: 'AI', emoji: '🛡️', title: 'AI에도 감독과 기록이 필요하옵니다', why: '사람이 최종 확인하는 구조와 개인정보 보호가 중요한 기준으로 떠오르고 있사옵니다.' },
+        // 📞 콜업계
+        { field: '콜업계', emoji: '📞', title: '챗봇에서 스스로 해결하는 AI 상담으로', why: '단순 안내를 넘어 문의를 끝까지 처리하는 AI 상담이 늘고 있사옵니다. 보이스 AI가 기존 ARS를 대체하는 흐름이옵니다.' },
+        { field: '콜업계', emoji: '🎧', title: '상담사 옆의 AI 코파일럿', why: '상담 중 답변을 추천하고 통화를 요약해 주는 도구가 기본이 되어 가옵니다. 사람과 AI가 함께 일하는 방식이옵니다.' },
+        { field: '콜업계', emoji: '✅', title: '전수 품질 점검', why: '일부만 뽑아 보던 품질 평가를 AI로 모든 통화에 적용하는 시도가 늘고 있사옵니다.' }
       ]
     };
 
@@ -171,7 +177,12 @@
 
       const advice = pick(CONFIG.advice, seed, 1)[0];
       const tasks = pick(CONFIG.tasks, seed * 3, 3);
-      const trends = pick(CONFIG.trends, seed * 2, 2);
+      // 분야(주식/맛집/AI/콜업계)마다 하루에 하나씩 뽑아요
+      const fields = [...new Set(CONFIG.trends.map((t) => t.field))];
+      const trends = fields.map((f, i) => {
+        const group = CONFIG.trends.filter((t) => t.field === f);
+        return group[(seed + i) % group.length];
+      });
       const praise = pick(CONFIG.profile, seed, 1)[0];
 
       const sections = [
@@ -188,8 +199,8 @@
           html: `<ol class="list-decimal pl-5 space-y-1">${tasks.map((t) => `<li>${t}</li>`).join('')}</ol>`
         },
         {
-          title: '四 · 천하의 동향',
-          html: trends.map((t) => `<p class="mb-2"><b>${t.emoji} ${t.title}</b><br /><span class="text-slate-700">${t.why}</span></p>`).join('')
+          title: `四 · 천하의 동향 (${CONFIG.updatedAt} 기준)`,
+          html: trends.map((t) => `<p class="mb-2"><span class="text-[11px] font-bold text-red-800">[${t.field}]</span> <b>${t.emoji} ${t.title}</b><br /><span class="text-slate-700">${t.why}</span></p>`).join('')
         },
         {
           title: '五 · 맺음말',
