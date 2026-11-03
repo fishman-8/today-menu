@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>가위바위보 대결 ✊✌️🖐️</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;800&display=swap" rel="stylesheet" />
+  <link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" rel="stylesheet" />
+  <style>
+    body { font-family: 'Pretendard', 'Poppins', sans-serif; }
+    @keyframes shake { 0%,100%{transform:translateX(0)} 20%{transform:translateX(-10px)} 40%{transform:translateX(10px)} 60%{transform:translateX(-8px)} 80%{transform:translateX(8px)} }
+    @keyframes pop { 0%{transform:scale(.3);opacity:0} 60%{transform:scale(1.25)} 100%{transform:scale(1);opacity:1} }
+    @keyframes floaty { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-8px)} }
+    @keyframes fall { to { transform: translateY(110vh) rotate(720deg); opacity:.9 } }
+    @keyframes wiggle { 0%,100%{transform:rotate(-12deg)} 50%{transform:rotate(12deg)} }
+    .shake { animation: shake .5s }
+    .pop { animation: pop .5s ease-out }
+    .floaty { animation: floaty 2.5s ease-in-out infinite }
+    .wiggle { animation: wiggle .25s infinite }
+    .confetti { position: fixed; top: -20px; width: 10px; height: 14px; z-index: 50; animation: fall 2.2s linear forwards; pointer-events:none }
+  </style>
+</head>
+<body class="min-h-screen bg-gradient-to-br from-indigo-100 via-purple-50 to-pink-100 text-slate-800">
+  <main class="max-w-md mx-auto px-6 py-10 overflow-x-hidden">
+
+    <!-- 제목 -->
+    <header class="text-center mb-8">
+      <div class="text-6xl floaty">✊✌️🖐️</div>
+      <h1 class="mt-4 text-4xl font-extrabold bg-gradient-to-r from-indigo-600 to-pink-500 bg-clip-text text-transparent">가위바위보 대결!</h1>
+      <p class="mt-2 text-slate-500">컴퓨터와 한판 붙어볼까요? 먼저 3승 하면 우승 🏆</p>
+    </header>
+
+    <!-- 점수판 -->
+    <section class="grid grid-cols-3 gap-3 text-center mb-6">
+      <div class="bg-white rounded-2xl shadow-lg p-4">
+        <div class="text-xs text-slate-400">나 😎</div>
+        <div id="myScore" class="text-3xl font-extrabold text-indigo-600">0</div>
+      </div>
+      <div class="bg-white rounded-2xl shadow-lg p-4">
+        <div class="text-xs text-slate-400">무승부 🤝</div>
+        <div id="drawScore" class="text-3xl font-extrabold text-slate-400">0</div>
+      </div>
+      <div class="bg-white rounded-2xl shadow-lg p-4">
+        <div class="text-xs text-slate-400">컴퓨터 🤖</div>
+        <div id="comScore" class="text-3xl font-extrabold text-pink-500">0</div>
+      </div>
+    </section>
+
+    <!-- 대결 무대 -->
+    <section id="stage" class="bg-white rounded-3xl shadow-xl p-6 mb-6 text-center">
+      <div class="flex items-center justify-around">
+        <div>
+          <div id="myHand" class="text-7xl">❔</div>
+          <div class="mt-2 text-sm text-slate-400">나</div>
+        </div>
+        <div class="text-2xl font-extrabold text-slate-300">VS</div>
+        <div>
+          <div id="comHand" class="text-7xl">❔</div>
+          <div class="mt-2 text-sm text-slate-400">컴퓨터</div>
+        </div>
+      </div>
+      <div id="resultText" class="mt-6 text-2xl font-extrabold min-h-[2.5rem]">아래에서 골라주세요 👇</div>
+    </section>
+
+    <!-- 선택 버튼 -->
+    <section id="choices" class="grid grid-cols-3 gap-3">
+      <button data-pick="scissors" class="pick-btn bg-gradient-to-br from-indigo-500 to-purple-500 text-white rounded-2xl shadow-lg py-5 hover:scale-105 active:scale-95 transition-transform">
+        <div class="text-4xl">✌️</div><div class="mt-1 text-sm font-semibold">가위</div>
+      </button>
+      <button data-pick="rock" class="pick-btn bg-gradient-to-br from-purple-500 to-pink-500 text-white rounded-2xl shadow-lg py-5 hover:scale-105 active:scale-95 transition-transform">
+        <div class="text-4xl">✊</div><div class="mt-1 text-sm font-semibold">바위</div>
+      </button>
+      <button data-pick="paper" class="pick-btn bg-gradient-to-br from-pink-500 to-orange-400 text-white rounded-2xl shadow-lg py-5 hover:scale-105 active:scale-95 transition-transform">
+        <div class="text-4xl">🖐️</div><div class="mt-1 text-sm font-semibold">보</div>
+      </button>
+    </section>
+
+    <!-- 다시하기 (우승 결정 시 표시) -->
+    <button id="restartBtn" class="hidden w-full mt-6 py-4 rounded-2xl bg-gradient-to-r from-indigo-600 to-pink-500 text-white text-lg font-bold shadow-xl hover:scale-105 active:scale-95 transition-transform">
+      🔄 다시 한판!
+    </button>
+
+    <p class="text-center text-xs text-slate-400 mt-8">연승 기록 🔥 <span id="streak">0</span>연승 · 최고 <span id="bestStreak">0</span></p>
+  </main>
+
+  <!-- 토스트 -->
+  <div id="toast" class="fixed bottom-8 left-1/2 -translate-x-1/2 bg-slate-800 text-white px-5 py-3 rounded-2xl shadow-xl opacity-0 pointer-events-none transition-all duration-300 z-50"></div>
+
+  <script>
+    // 👇 여기를 바꾸면 게임 규칙/문구가 바뀌어요
+    const CONFIG = {
+      winScore: 3,                 // 몇 승 먼저 하면 우승인지
+      rollMs: 900,                 // 컴퓨터가 고르는 "두근두근" 연출 시간(밀리초)
+      messages: {
+        win:  ['이겼다! 🎉', '캬~ 굿! 😎', '완벽해요! ✨'],
+        lose: ['아쉽다… 😭', '컴퓨터가 이겼어요 🤖', '다음엔 꼭! 💪'],
+        draw: ['비겼어요 🤝', '마음이 통했네요 💞']
+      }
+    };
+
+    const HANDS = { scissors: '✌️', rock: '✊', paper: '🖐️' };
+    // 각 손이 이기는 상대
+    const BEATS = { scissors: 'paper', rock: 'scissors', paper: 'rock' };
+
+    const $ = (id) => document.getElementById(id);
+    const state = { me: 0, com: 0, draw: 0, streak: 0, best: 0, busy: false, over: false };
+
+    // 최고 연승은 브라우저에 저장 (실패해도 게임은 계속)
+    try { state.best = Number(localStorage.getItem('rpsBest')) || 0; } catch (e) {}
+    $('bestStreak').textContent = state.best;
+
+    function randomItem(list) { return list[Math.floor(Math.random() * list.length)]; }
+    function getRandomHand() { return randomItem(Object.keys(HANDS)); }
+
+    function showToast(text) {
+      const t = $('toast');
+      t.textContent = text;
+      t.classList.remove('opacity-0');
+      clearTimeout(showToast.timer);
+      showToast.timer = setTimeout(() => t.classList.add('opacity-0'), 1800);
+    }
+
+    function launchConfetti() {
+      const colors = ['#6366f1', '#ec4899', '#f59e0b', '#10b981', '#8b5cf6'];
+      for (let i = 0; i < 60; i++) {
+        const c = document.createElement('div');
+        c.className = 'confetti';
+        c.style.left = Math.random() * 100 + 'vw';
+        c.style.background = randomItem(colors);
+        c.style.animationDelay = Math.random() * 0.6 + 's';
+        c.style.borderRadius = Math.random() > .5 ? '50%' : '2px';
+        document.body.appendChild(c);
+        setTimeout(() => c.remove(), 3200);
+      }
+    }
+
+    function judge(my, com) {
+      if (my === com) return 'draw';
+      return BEATS[my] === com ? 'win' : 'lose';
+    }
+
+    function updateScores() {
+      $('myScore').textContent = state.me;
+      $('comScore').textContent = state.com;
+      $('drawScore').textContent = state.draw;
+      $('streak').textContent = state.streak;
+      $('bestStreak').textContent = state.best;
+    }
+
+    function setButtonsDisabled(disabled) {
+      document.querySelectorAll('.pick-btn').forEach((b) => {
+        b.disabled = disabled;
+        b.classList.toggle('opacity-50', disabled);
+      });
+    }
+
+    function play(myPick) {
+      if (state.busy || state.over) return;
+      state.busy = true;
+      setButtonsDisabled(true);
+
+      $('myHand').textContent = HANDS[myPick];
+      $('myHand').classList.remove('pop'); void $('myHand').offsetWidth; $('myHand').classList.add('pop');
+      $('resultText').textContent = '컴퓨터가 고르는 중… 🤔';
+      $('resultText').className = 'mt-6 text-2xl font-extrabold min-h-[2.5rem] text-slate-400';
+
+      // 컴퓨터 손이 빠르게 바뀌는 롤링 연출
+      $('comHand').classList.add('wiggle');
+      const roll = setInterval(() => { $('comHand').textContent = HANDS[getRandomHand()]; }, 90);
+
+      setTimeout(() => {
+        clearInterval(roll);
+        const comPick = getRandomHand();
+        $('comHand').classList.remove('wiggle');
+        $('comHand').textContent = HANDS[comPick];
+        $('comHand').classList.remove('pop'); void $('comHand').offsetWidth; $('comHand').classList.add('pop');
+        showResult(judge(myPick, comPick));
+      }, CONFIG.rollMs);
+    }
+
+    function showResult(result) {
+      const rt = $('resultText');
+      rt.textContent = randomItem(CONFIG.messages[result]);
+      rt.classList.remove('pop'); void rt.offsetWidth; rt.classList.add('pop');
+
+      if (result === 'win') {
+        state.me++; state.streak++;
+        if (state.streak > state.best) {
+          state.best = state.streak;
+          try { localStorage.setItem('rpsBest', state.best); } catch (e) {}
+        }
+        rt.className = 'mt-6 text-2xl font-extrabold min-h-[2.5rem] text-indigo-600 pop';
+      } else if (result === 'lose') {
+        state.com++; state.streak = 0;
+        rt.className = 'mt-6 text-2xl font-extrabold min-h-[2.5rem] text-pink-500';
+        $('stage').classList.remove('shake'); void $('stage').offsetWidth; $('stage').classList.add('shake');
+      } else {
+        state.draw++;
+        rt.className = 'mt-6 text-2xl font-extrabold min-h-[2.5rem] text-slate-500 pop';
+      }
+      updateScores();
+
+      if (state.me >= CONFIG.winScore || state.com >= CONFIG.winScore) {
+        endGame(state.me >= CONFIG.winScore);
+      } else {
+        state.busy = false;
+        setButtonsDisabled(false);
+      }
+    }
+
+    function endGame(iWon) {
+      state.over = true;
+      if (iWon) {
+        $('resultText').textContent = '🏆 우승! 당신이 최고예요!';
+        launchConfetti();
+        showToast('우승 축하해요! 🎉');
+      } else {
+        $('resultText').textContent = '🤖 컴퓨터 우승… 복수전 가자!';
+        showToast('아깝다! 한 판 더? 🔥');
+      }
+      $('restartBtn').classList.remove('hidden');
+      $('restartBtn').classList.add('pop');
+    }
+
+    function restartGame() {
+      state.me = 0; state.com = 0; state.draw = 0; state.streak = 0;
+      state.busy = false; state.over = false;
+      $('myHand').textContent = '❔';
+      $('comHand').textContent = '❔';
+      $('resultText').textContent = '아래에서 골라주세요 👇';
+      $('resultText').className = 'mt-6 text-2xl font-extrabold min-h-[2.5rem]';
+      $('restartBtn').classList.add('hidden');
+      setButtonsDisabled(false);
+      updateScores();
+    }
+
+    document.querySelectorAll('.pick-btn').forEach((b) => {
+      b.addEventListener('click', () => play(b.dataset.pick));
+    });
+    $('restartBtn').addEventListener('click', restartGame);
+  </script>
+</body>
+</html>
